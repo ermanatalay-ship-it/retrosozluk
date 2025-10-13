@@ -2,22 +2,31 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>RetroSozluk - Kelime</title>
+  <title>RetroSozluk - Başlık</title>
   <link rel="stylesheet" href="style.css">
   <script defer src="app.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1 id="wordTitle"></h1>
+  <div class="layout">
+    <!-- Sol panel: Başlıklar -->
+    <div class="sidebar">
+      <h2>Başlıklar</h2>
+      <ul id="wordList"></ul>
+    </div>
 
-    <h2>Yeni Entry Ekle</h2>
-    <input id="entryInput" type="text" placeholder="Entry yaz..." />
-    <button onclick="addEntry()">Ekle</button>
+    <!-- Sağ panel: Seçilen başlık ve entry’ler -->
+    <div class="content">
+      <h1 id="wordTitle"></h1>
 
-    <h2>Entry’ler</h2>
-    <ul id="entryList"></ul>
+      <h2>Yeni Entry Ekle</h2>
+      <textarea id="entryInput" placeholder="Entry yaz..." rows="4"></textarea><br>
+      <button onclick="addEntry()">Ekle</button>
 
-    <p><a href="index.html">← Geri dön</a></p>
+      <h2>Entry’ler</h2>
+      <ul id="entryList"></ul>
+
+      <p><a href="index.html">← Ana sayfaya dön</a></p>
+    </div>
   </div>
 </body>
 </html>
