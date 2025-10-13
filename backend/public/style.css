@@ -1,48 +1,69 @@
 body {
-  font-family: "Courier New", monospace;
-  background: #f4f4f4;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #e9ecef; /* daha yumuşak gri */
   color: #222;
+  margin: 0;
 }
 
-.container {
-  max-width: 600px;
-  margin: 20px auto;
-  border: 3px solid black;
-  padding: 20px;
-  background: #fff;
+.layout {
+  display: flex;
+  height: 100vh;
 }
 
-h1, h2 {
-  border-bottom: 2px solid black;
-  padding-bottom: 5px;
+.sidebar {
+  width: 250px;
+  background: #f8f9fa;
+  border-right: 2px solid #ccc;
+  padding: 10px;
+  overflow-y: auto; /* kendi scroll’u */
 }
 
-input {
-  font-family: inherit;
-  padding: 5px;
-  border: 2px solid black;
+.sidebar h2 {
+  margin-top: 0;
 }
 
-button {
-  background: black;
-  color: lime;
-  font-weight: bold;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
-button:hover {
-  background: lime;
-  color: black;
-}
-
-ul {
+.sidebar ul {
   list-style: none;
   padding: 0;
 }
 
-li {
-  padding: 5px;
-  border-bottom: 1px dashed #999;
+.sidebar li {
+  padding: 5px 0;
+}
+
+.sidebar a {
+  text-decoration: none;
+  color: #007bff;
+}
+
+.sidebar a:hover {
+  text-decoration: underline;
+}
+
+.content {
+  flex: 1;
+  padding: 20px;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 8px;
+  border: 2px solid #333;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+button {
+  margin-top: 10px;
+  background: #333;
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  padding: 8px 15px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+button:hover {
+  background: #007bff;
 }
