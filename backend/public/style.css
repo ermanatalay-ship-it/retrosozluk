@@ -1,1 +1,48 @@
+body {
+  font-family: "Courier New", monospace;
+  background: #f4f4f4;
+  color: #222;
+}
 
+.container {
+  max-width: 600px;
+  margin: 20px auto;
+  border: 3px solid black;
+  padding: 20px;
+  background: #fff;
+}
+
+h1, h2 {
+  border-bottom: 2px solid black;
+  padding-bottom: 5px;
+}
+
+input {
+  font-family: inherit;
+  padding: 5px;
+  border: 2px solid black;
+}
+
+button {
+  background: black;
+  color: lime;
+  font-weight: bold;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: lime;
+  color: black;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  padding: 5px;
+  border-bottom: 1px dashed #999;
+}
