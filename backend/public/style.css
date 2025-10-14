@@ -67,3 +67,7 @@ button {
 button:hover {
   background: #007bff;
 }
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #e9ecef; /* daha yumuşak gri */
+  color: #222
