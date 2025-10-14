@@ -46,7 +46,9 @@ body {
 }
 
 input, textarea {
-  width: 100%;
+   width: 90%;       /* tam genişlik yerine %90 */
+  max-width: 500px; /* çok geniş olmasın */
+  margin-bottom: 10px;
   padding: 8px;
   border: 2px solid #333;
   border-radius: 4px;
@@ -67,7 +69,15 @@ button {
 button:hover {
   background: #007bff;
 }
+h1 {
+  font-family: 'Monoton', cursive;
+  font-size: 36px;
+  color: #222;
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
   background: #e9ecef; /* daha yumuşak gri */
   color: #222
+}
+  
