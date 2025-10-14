@@ -9,7 +9,6 @@ async function loadWords() {
   if (list) {
     list.innerHTML = "";
     for (const w of words) {
-      // entry sayısını getir
       const resEntries = await fetch(`${API_URL}/words/${w.id}/entries`);
       const entries = await resEntries.json();
       const li = document.createElement("li");
@@ -19,25 +18,16 @@ async function loadWords() {
   }
 }
 
-// Yeni başlık + ilk entry ekle
+// Yeni başlık + ilk tanım ekle
 async function addWordWithEntry() {
   const wordInput = document.getElementById("wordInput");
   const entryInput = document.getElementById("entryInput");
   if (!wordInput.value || !entryInput.value) return;
 
-  // önce başlık ekle
-  const res = await fetch(`${API_URL}/words`, {
+  await fetch(`${API_URL}/words`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text: wordInput.value })
-  });
-  const newWord = await res.json();
-
-  // sonra ilk entry ekle
-  await fetch(`${API_URL}/words/${newWord.id}/entries`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text: entryInput.value })
+    body: JSON.stringify({ text: wordInput.value, entry: entryInput.value })
   });
 
   wordInput.value = "";
@@ -45,23 +35,17 @@ async function addWordWithEntry() {
   loadWords();
 }
 
-// Sayfa yüklenince başlıkları getir
-window.onload = () => {
-  if (document.getElementById("wordList")) loadWords();
-};
-// word.html için entry’leri yükle
+// word.html için tanımları yükle
 async function loadEntries() {
   const params = new URLSearchParams(window.location.search);
   const wordId = params.get("id");
   if (!wordId) return;
 
-  // başlık adını getir
   const resWord = await fetch(`${API_URL}/words`);
   const words = await resWord.json();
   const word = words.find(w => w.id == wordId);
   document.getElementById("wordTitle").innerText = word ? word.text : "Başlık";
 
-  // entry’leri getir
   const res = await fetch(`${API_URL}/words/${wordId}/entries`);
   const entries = await res.json();
   const list = document.getElementById("entryList");
@@ -69,13 +53,16 @@ async function loadEntries() {
     list.innerHTML = "";
     entries.forEach(e => {
       const li = document.createElement("li");
-      li.textContent = e.text;
+      li.innerHTML = `
+        <div>${e.text}</div>
+        <div style="font-size: 12px; color: #666; margin-top: 2px;">${e.created_at}</div>
+      `;
       list.appendChild(li);
     });
   }
 }
 
-// Yeni entry ekle
+// Yeni tanım ekle
 async function addEntry() {
   const params = new URLSearchParams(window.location.search);
   const wordId = params.get("id");
