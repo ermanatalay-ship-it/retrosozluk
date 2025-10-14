@@ -1,81 +1,173 @@
 const express = require("express");
-const sqlite3 = require("sqlite3").verbose();
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require("path");
+const { google } = require("googleapis");
 
 const app = express();
-const db = new sqlite3.Database("./db.sqlite");
-
 app.use(cors());
 app.use(bodyParser.json());
 
-// --- Veritabanı tabloları ---
-db.run("CREATE TABLE IF NOT EXISTS words (id INTEGER PRIMARY KEY, text TEXT UNIQUE)");
-db.run("CREATE TABLE IF NOT EXISTS entries (id INTEGER PRIMARY KEY, word_id INTEGER, text TEXT, created_at TEXT)");
-
-// --- API endpointleri ---
-
-// Başlık ekle veya varsa entry ekle
-app.post("/words", (req, res) => {
-  const wordText = req.body.text;
-  const entryText = req.body.entry;
-
-  db.get("SELECT * FROM words WHERE text = ?", [wordText], (err, row) => {
-    if (row) {
-      // başlık zaten varsa → entry ekle
-      db.run(
-        "INSERT INTO entries (word_id, text, created_at) VALUES (?, ?, datetime('now'))",
-        [row.id, entryText],
-        function () {
-          res.json({ word_id: row.id, entry_id: this.lastID, text: entryText });
-        }
-      );
-    } else {
-      // yeni başlık + entry
-      db.run("INSERT INTO words (text) VALUES (?)", [wordText], function () {
-        const newWordId = this.lastID;
-        db.run(
-          "INSERT INTO entries (word_id, text, created_at) VALUES (?, ?, datetime('now'))",
-          [newWordId, entryText],
-          function () {
-            res.json({ word_id: newWordId, entry_id: this.lastID, text: entryText });
-          }
-        );
-      });
-    }
+// --- Google Sheets auth ---
+function getSheetsClient() {
+  const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  const auth = new google.auth.GoogleAuth({
+    credentials: creds,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"]
   });
-});
+  return google.sheets({ version: "v4", auth });
+}
 
-// Başlıkları getir
-app.get("/words", (req, res) => {
-  db.all("SELECT * FROM words ORDER BY id DESC", [], (err, rows) => res.json(rows));
-});
+const SHEET_ID = process.env.SHEET_ID;
+const SHEET_NAME = "data"; // sayfa adı (tab name)
 
-// Entry’leri getir
-app.get("/words/:id/entries", (req, res) => {
-  db.all("SELECT * FROM entries WHERE word_id = ? ORDER BY id DESC", [req.params.id], (err, rows) => res.json(rows));
-});
+// --- Yardımcı: sheet'i oku ---
+async function readAllRows() {
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: `${SHEET_NAME}!A:F`
+  });
+  const rows = res.data.values || [];
+  // başlık satırını çıkar
+  return rows.slice(1);
+}
 
-// Entry ekle
-app.post("/words/:id/entries", (req, res) => {
-  db.run(
-    "INSERT INTO entries (word_id, text, created_at) VALUES (?, ?, datetime('now'))",
-    [req.params.id, req.body.text],
-    function () {
-      res.json({ id: this.lastID, word_id: req.params.id, text: req.body.text });
+// --- Yardımcı: sheet'e satır ekle ---
+async function appendRow(row) {
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: `${SHEET_NAME}!A:F`,
+    valueInputOption: "RAW",
+    requestBody: { values: [row] }
+  });
+}
+
+// --- Yardımcı: yeni ID üret (basit artan) ---
+async function nextId(rows, type) {
+  // type=word için A sütunu (id) max + 1
+  // entries için de aynı artış yeterli (global id)
+  const ids = rows
+    .filter(r => r[1] === type)
+    .map(r => Number(r[0]))
+    .filter(n => !isNaN(n));
+  const max = ids.length ? Math.max(...ids) : 0;
+  return String(max + 1);
+}
+
+// --- API: Başlık ekle veya mevcut başlığa tanım ekle ---
+app.post("/words", async (req, res) => {
+  try {
+    const wordText = (req.body.text || "").trim();
+    const entryText = (req.body.entry || "").trim();
+    if (!wordText || !entryText) {
+      return res.status(400).json({ error: "text ve entry zorunlu" });
     }
-  );
+
+    const rows = await readAllRows();
+
+    // mevcut başlık var mı?
+    const existingWordRow = rows.find(r => r[1] === "word" && (r[5] || "").trim() === wordText);
+    let wordId;
+    if (existingWordRow) {
+      wordId = existingWordRow[0]; // id
+    } else {
+      // yeni word
+      wordId = await nextId(rows, "word");
+      await appendRow([
+        wordId,       // id
+        "word",       // type
+        "",           // word_id (boş)
+        "",           // text (boş)
+        new Date().toISOString(), // created_at
+        wordText      // word_text
+      ]);
+    }
+
+    // entry ekle
+    const entryId = await nextId(await readAllRows(), "entry");
+    await appendRow([
+      entryId,       // id
+      "entry",       // type
+      wordId,        // word_id
+      entryText,     // text
+      new Date().toISOString(), // created_at
+      ""             // word_text (boş)
+    ]);
+
+    res.json({ word_id: wordId, entry_id: entryId, text: entryText });
+  } catch (err) {
+    console.error("POST /words error:", err);
+    res.status(500).json({ error: "server error" });
+  }
+});
+
+// --- API: Başlıkları getir ---
+app.get("/words", async (req, res) => {
+  try {
+    const rows = await readAllRows();
+    const words = rows
+      .filter(r => r[1] === "word")
+      .map(r => ({ id: r[0], text: r[5] }));
+    // id DESC
+    words.sort((a, b) => Number(b.id) - Number(a.id));
+    res.json(words);
+  } catch (err) {
+    console.error("GET /words error:", err);
+    res.status(500).json({ error: "server error" });
+  }
+});
+
+// --- API: Başlığın tanımları ---
+app.get("/words/:id/entries", async (req, res) => {
+  try {
+    const rows = await readAllRows();
+    const entries = rows
+      .filter(r => r[1] === "entry" && r[2] === req.params.id)
+      .map(r => ({
+        id: r[0],
+        word_id: r[2],
+        text: r[3],
+        created_at: r[4]
+      }));
+    // id DESC
+    entries.sort((a, b) => Number(b.id) - Number(a.id));
+    res.json(entries);
+  } catch (err) {
+    console.error("GET /words/:id/entries error:", err);
+    res.status(500).json({ error: "server error" });
+  }
+});
+
+// --- API: Yeni tanım ekle ---
+app.post("/words/:id/entries", async (req, res) => {
+  try {
+    const entryText = (req.body.text || "").trim();
+    if (!entryText) return res.status(400).json({ error: "text zorunlu" });
+
+    const rows = await readAllRows();
+    const entryId = await nextId(rows, "entry");
+    await appendRow([
+      entryId,
+      "entry",
+      req.params.id,
+      entryText,
+      new Date().toISOString(),
+      ""
+    ]);
+    res.json({ id: entryId, word_id: req.params.id, text: entryText });
+  } catch (err) {
+    console.error("POST /words/:id/entries error:", err);
+    res.status(500).json({ error: "server error" });
+  }
 });
 
 // --- Statik frontend dosyaları ---
 app.use(express.static(path.join(__dirname, "public")));
-
-// SPA fallback
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// --- Sunucu başlat ---
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`RetroSozluk running on port ${PORT}`));
+app.listen(PORT, () => console.log(`RetroSozluk (Sheets) running on port ${PORT}`));
