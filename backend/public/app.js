@@ -52,12 +52,20 @@ async function loadEntries() {
   if (list) {
     list.innerHTML = "";
     entries.forEach(e => {
-      const li = document.createElement("li");
-      li.innerHTML = `
-        <div>${e.text}</div>
-        <div style="font-size: 12px; color: #666; margin-top: 2px;">${e.created_at}</div>
-      `;
-      list.appendChild(li);
+      // Tarihi formatla
+      const date = new Date(e.created_at);
+      const formattedDate = date.toLocaleString("tr-TR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
+      // <p> oluştur
+      const p = document.createElement("p");
+      p.innerHTML = `${e.text} <span class="timestamp">(${formattedDate})</span>`;
+      list.appendChild(p);
     });
   }
 }
@@ -68,11 +76,13 @@ async function addEntry() {
   const wordId = params.get("id");
   const input = document.getElementById("entryInput");
   if (!input.value) return;
+
   await fetch(`${API_URL}/words/${wordId}/entries`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text: input.value })
   });
+
   input.value = "";
   loadEntries();
 }
