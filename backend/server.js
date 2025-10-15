@@ -21,19 +21,29 @@ function getSheetsClient() {
 const SHEET_ID = process.env.SHEET_ID;
 const SHEET_NAME = "data"; // sayfa adı (tab name)
 
-// --- Yardımcı: sheet'i oku ---
-async function readAllRows() {
+// --- CACHE EKLENTİSİ BAŞLANGIÇ ---
+let cachedRows = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 60 * 1000; // 1 dakika (ms)
+
+// --- Yardımcı: sheet'i oku + cache'li ---
+async function readAllRows(forceRefresh = false) {
+  const now = Date.now();
+  if (!forceRefresh && cachedRows && (now - cacheTimestamp < CACHE_TTL)) {
+    return cachedRows;
+  }
   const sheets = getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
     range: `${SHEET_NAME}!A:F`
   });
   const rows = res.data.values || [];
-  // başlık satırını çıkar
-  return rows.slice(1);
+  cachedRows = rows.slice(1); // başlık satırı hariç cache'e yaz
+  cacheTimestamp = now;
+  return cachedRows;
 }
 
-// --- Yardımcı: sheet'e satır ekle ---
+// --- Yardımcı: sheet'e satır ekle (cache reset) ---
 async function appendRow(row) {
   const sheets = getSheetsClient();
   await sheets.spreadsheets.values.append({
@@ -42,6 +52,9 @@ async function appendRow(row) {
     valueInputOption: "RAW",
     requestBody: { values: [row] }
   });
+  // Cache'i sıfırla
+  cachedRows = null;
+  cacheTimestamp = 0;
 }
 
 // --- Yardımcı: yeni ID üret (basit artan) ---
