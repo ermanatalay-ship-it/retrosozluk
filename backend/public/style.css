@@ -92,3 +92,8 @@ h1 {
   color: #666;
   margin-left: 6px;   /* tanım ile tarih arasında boşluk */
 }
+.monoton-regular {
+  font-family: "Monoton", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
