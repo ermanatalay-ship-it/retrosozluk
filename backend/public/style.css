@@ -80,4 +80,18 @@ body {
   background: #e9ecef; /* daha yumuşak gri */
   color: #222
 }
-  
+#entryList {
+  margin-top: 10px;
+}
+
+#entryList p {
+  margin: 12px 0;     /* tanımlar arasında boşluk */
+  line-height: 1.4;   /* okunabilirlik */
+  padding: 0;         /* içeriden başlamasın */
+}
+
+.timestamp {
+  font-size: 0.9em;
+  color: #666;
+  margin-left: 6px;   /* tanım ile tarih arasında boşluk */
+}
